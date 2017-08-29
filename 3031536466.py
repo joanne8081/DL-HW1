@@ -2,6 +2,7 @@
 import sys
 import numpy as np
 from sklearn.decomposition import PCA
+from scipy.spatial import distance
 
 def unpickle(file):
     import pickle
@@ -18,7 +19,6 @@ if __name__ == "__main__":
 	
 	# Import dataset
 	dataDict = unpickle(PATH_TO_DATA)
-	print(dataDict.keys())
 	data = dataDict[b'data']
 	labels = dataDict[b'labels']
 	data = data[0:1000, :]
@@ -29,9 +29,6 @@ if __name__ == "__main__":
 	trainSet = dataL[N:, :]
 	testLabel = labels[0:N]
 	trainLabel = labels[N:]
-#	print(testLabel)
-#	print(len(testLabel))
-#	print(len(trainLabel))
 	testNum = N
 	trainNum = 1000 - N
 	
@@ -40,9 +37,18 @@ if __name__ == "__main__":
 	pca.fit(trainSet)
 	train_pca = pca.transform(trainSet)
 	test_pca = pca.transform(testSet)
-	print(train_pca.shape, test_pca.shape)
 	
 	# Implement K-Nearest Neighbors classifier
+	distArr = distance.cdist(test_pca, train_pca, 'euclidean')
+	neighbors = np.argsort(distArr, axis=1)[:, 0:K]
+	predictLabel = []
+	for n in range(testNum):
+		voteCt = np.zeros((10))
+		for k in range(K):
+			voteCt[trainLabel[neighbors[n,k]]] += (1/distArr[n, neighbors[n,k]])
+		predictLabel.append(np.argmax(voteCt))	
 	
-	
-
+	# Write the output file	
+	with open('3031536466.txt', 'w') as fd:
+		for n in range(testNum):
+			fd.write(str(predictLabel[n]) + ' ' + str(testLabel[n]) + '\n')
